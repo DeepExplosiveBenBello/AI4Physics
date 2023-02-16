@@ -76,9 +76,13 @@ def get_n_moms_of_moving_array(array, lag, window, n_moms):
     return n_mom_vec
 
 # load data
-data_path = "../data/current_data.csv"
 columns_names = ["Current (A)", "Timestamp (ms)", "id"]
-df = pd.read_csv(data_path)
+try: 
+    data_path = "../data/current_data.csv"
+    df = pd.read_csv(data_path)
+except FileNotFoundError:
+    data_path = "data/current_data.csv"
+    df = pd.read_csv(data_path)
 
 # some parameters
 window = 100
