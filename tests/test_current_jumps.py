@@ -1,6 +1,6 @@
 import numpy as np
-from Current_jumps import std_1D
-from Current_jumps import get_n_moms_of_moving_array
+from src.current_jumps import std_1D
+from src.current_jumps import get_n_moms_of_moving_array
 import pytest
 
 # list of inputs and expected results for std_1D() function
