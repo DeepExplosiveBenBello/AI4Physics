@@ -1,21 +1,78 @@
 import numpy as np
 import pandas as pd
-import math
-      
+
 def standardization(array):
+    """
+    Standardize a 1D numpy array by subtracting its mean and dividing by its
+    standard deviation.
+
+    Parameters
+    ----------
+    array : 1D-numpy array
+
+    Returns
+    -------
+    1D-numpy array
+
+    """
     return (array - array.mean())/(array.std())
 
 def differentiation(array):
+    """
+    Differenciate discretly a 1D numpy array by subtracting each element with
+    the previous one. Notice: it duplicates the second last element with the
+    last so that the array doesn't change dimention.
+
+    Parameters
+    ----------
+    array : 1D-numpy array
+
+    Returns
+    -------
+    1D-numpy array of equal dimension
+
+    """
     array = np.diff(array)
     return np.append(array, array[-1])
 
 def std_1D(array, mean):
+    """
+    Calculate the standard deviation of an array, by using its mean.
+    
+    Parameters
+    ----------
+    array : 1D-numpy array
+    mean : the mean of the array
+
+    Returns
+    -------
+    float
+
+    """
     sum_of_ls = 0
     for value in array:
         sum_of_ls += (value - mean)**2
     return (sum_of_ls/len(array))**(0.5)
 
 def central_n_mom_1D(array, mean, n):
+    """
+    Calculate the n-th moment of an array centralize to the mean by using its
+    mean.
+    
+    Parameters
+    ----------
+    array : 1D-numpy array
+    mean : float - the mean of the array
+    n : integer - nth moment to be calculated
+
+    Returns
+    -------
+    float
+
+    """
+    if n < 2 or not isinstance(n, int):
+        raise ValueError("n must be an integer greater or equal 2")
+
     sum_of_n_ls = 0
     for value in array:
         sum_of_n_ls += (value-mean)**(n+1)
@@ -38,6 +95,16 @@ def get_n_moms_of_moving_array(array, lag, window, n_moms):
     OUTPUT ---------------------------------------------------------------
     n_mom_vec --> numpy NxM-array
     """
+    # sanity-check arguments
+    if ((len(array) - window) % lag) != 0:
+        raise ValueError("""The window and lag chosen must be such that the
+                         difference between the size of the array and the
+                         window is multiple of the lag.""")
+
+    if not all(isinstance(i, int) for i in [lag, window, n_moms]):
+        raise ValueError("""window, lag and n_moms arguments must be all
+                         integers""")
+
     # number of series/subarray calculated by window and lag
     n_of_series = int((len(array) - window)/lag + 1)
 
@@ -58,7 +125,7 @@ def get_n_moms_of_moving_array(array, lag, window, n_moms):
         for n in range(2, n_moms):
             n_mom_vec[0][n] = central_n_mom_1D(series_1st, means_vec[0], n)
 
-    # rolling series
+    # calculate all moments for rolling series
     for i in range(1, n_of_series):
         # the mean of a rolling series can be calculated faster by using
         # the mean of the previous series
@@ -77,7 +144,7 @@ def get_n_moms_of_moving_array(array, lag, window, n_moms):
 
 # load data
 columns_names = ["Current (A)", "Timestamp (ms)", "id"]
-try: 
+try:
     data_path = "../data/current_data.csv"
     df = pd.read_csv(data_path)
 except FileNotFoundError:
@@ -95,6 +162,5 @@ data = standardization(data)
 data_der = differentiation(data)
 
 # creating vector of features
-data_moments = get_n_moms_of_moving_array(np.zeros(6), 3, 3, 3)
-# data_der_moments = get_n_moms_of_moving_array(data_der, lag, window, n_moments)
-
+data_moments = get_n_moms_of_moving_array(data, lag, window, n_moments)
+data_der_moments = get_n_moms_of_moving_array(data_der, lag, window, n_moments)
