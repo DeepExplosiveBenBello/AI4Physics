@@ -1,8 +1,8 @@
 import numpy as np
 from src.current_jumps import std_1D
 from src.current_jumps import get_n_moms_of_moving_array
-from utilities.test_utilities import list_to_test_std_1D
-from utilities.test_utilities import list_to_test_get_n_moms_of_moving_array
+from tests.utilities.test_utilities import list_to_test_std_1D
+from tests.utilities.test_utilities import list_to_test_get_n_moms_of_moving_array
 import pytest
 
 @pytest.mark.parametrize("inputs, expected_result", list_to_test_std_1D())
