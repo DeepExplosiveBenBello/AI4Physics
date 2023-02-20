@@ -13,3 +13,7 @@ The aim of this repository is to collect some code and exepriment about Machine 
 <p align="center">
   <img width="450" src="https://www.smbc-comics.com/comics/20130605.png">
 </p>
+
+## Jump clustering
+
+In this, we are using clustering methods to characterise jumps in measured currents.
