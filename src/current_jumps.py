@@ -142,25 +142,27 @@ def get_n_moms_of_moving_array(array, lag, window, n_moms):
                 n_mom_vec[i][n] = central_n_mom_1D(ith_series, means_vec[i], n)
     return n_mom_vec
 
-# load data
-columns_names = ["Current (A)", "Timestamp (ms)", "id"]
-try:
-    data_path = "../data/current_data.csv"
-    df = pd.read_csv(data_path)
-except FileNotFoundError:
-    data_path = "data/current_data.csv"
-    df = pd.read_csv(data_path)
+# Execute code when the 
+# file runs as a script, but not when it’s imported as a module
+if __name__ == "__main__":
+    # load data
+    columns_names = ["Current (A)", "Timestamp (ms)", "id"]
+    try:
+        data_path = "../data/current_data.csv"
+        df = pd.read_csv(data_path)
+    except FileNotFoundError:
+        data_path = "data/current_data.csv"
+        df = pd.read_csv(data_path)
+    # some parameters
+    window = 100
+    lag = 20
+    n_moments = 10
 
-# some parameters
-window = 100
-lag = 20
-n_moments = 10
+    # processing data
+    data = pd.Series.to_numpy(df["Current (A)"])
+    data = standardization(data)
+    data_der = differentiation(data)
 
-# processing data
-data = pd.Series.to_numpy(df["Current (A)"])
-data = standardization(data)
-data_der = differentiation(data)
-
-# creating vector of features
-data_moments = get_n_moms_of_moving_array(data, lag, window, n_moments)
-data_der_moments = get_n_moms_of_moving_array(data_der, lag, window, n_moments)
+    # creating vector of features
+    data_moments = get_n_moms_of_moving_array(data, lag, window, n_moments)
+    data_der_moments = get_n_moms_of_moving_array(data_der, lag, window, n_moments)
