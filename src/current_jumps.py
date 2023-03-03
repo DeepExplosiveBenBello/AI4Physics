@@ -1,5 +1,7 @@
 import numpy as np
 import pandas as pd
+from scipy import signal
+from sklearn.preprocessing import StandardScaler
 
 def standardization(array):
     """
@@ -16,6 +18,7 @@ def standardization(array):
 
     """
     return (array - array.mean())/(array.std())
+
 
 def differentiation(array):
     """
@@ -35,6 +38,7 @@ def differentiation(array):
     array = np.diff(array)
     return np.append(array, array[-1])
 
+
 def std_1D(array, mean):
     """
     Calculate the standard deviation of an array, by using its mean.
@@ -53,6 +57,7 @@ def std_1D(array, mean):
     for value in array:
         sum_of_ls += (value - mean)**2
     return (sum_of_ls/len(array))**(0.5)
+
 
 def central_n_mom_1D(array, mean, n):
     """
@@ -78,9 +83,10 @@ def central_n_mom_1D(array, mean, n):
         sum_of_n_ls += (value-mean)**(n+1)
     return sum_of_n_ls/len(array)
 
+
 def get_n_moms_of_moving_array(array, lag, window, n_moms):
     """
-    This function creates a MxN-vector of moments, where:
+    Create a MxN-vector of moments.
     N(# of moments) = n_moms
     M(# of subarrays) = (len(array) - window)/lag + 1:
         
@@ -142,6 +148,75 @@ def get_n_moms_of_moving_array(array, lag, window, n_moms):
                 n_mom_vec[i][n] = central_n_mom_1D(ith_series, means_vec[i], n)
     return n_mom_vec
 
+
+def norm_auto_corr_pos_lags(array, lag, window):
+    """
+    Build a MxN-vector of autocorrelation values.
+    N(# of coefficients) = window//2
+    M(# of subarrays) = (len(array) - window)/lag + 1:
+    The vector will be normalized to the variance (first element) and only 
+    positive lags are considered.
+
+    INPUT ---------------------------------------------------------------
+    array --> numerical numpy 1D-array of size n.
+    window --> constant integer: # of points defining a subarray or series.
+    lag --> each subarray is the previous one shifted by # of points = lag.
+    
+    OUTPUT ---------------------------------------------------------------
+    a_corr_vec --> numpy NxM-array
+    """
+    # number of series/subarray calculated by window and lag
+    n_of_series = int((len(array) - window)/lag + 1)
+
+    # initialization of arrays
+    a_corr_vec = np.zeros((n_of_series, window//2))
+
+    # calculate normalized autocorrelation with pos lags for all series
+    for i in range(n_of_series):
+        ith_series = array[lag*i:window+lag*i]
+        # Autocorrelation of data series
+        a_corr_full = signal.correlate(ith_series, ith_series, mode='same')
+        a_corr_full /= len(ith_series)
+        # Normalization lag in respect to the variance (1st element lag = 0)
+        a_corr_full = a_corr_full/a_corr_full[0]
+        # Only positive lags
+        a_corr_vec[i] = a_corr_full[len(ith_series)//2:]
+
+    return a_corr_vec
+
+
+def spectral_density(array, lag, window):
+    """
+    Build a MxN-vector of power spectral values.
+    N(# of power spectral values) --> N = window//2
+    M(# of subarrays on which psd is performed) -->
+    M = (len(array) - window)/lag + 1:
+    Only positive frequencies are considered
+    
+    INPUT ---------------------------------------------------------------
+    array --> numerical numpy 1D-array of size n > window.
+    window --> constant integer: # of points defining a subarray or series.
+    lag --> each subarray is the previous one shifted by # of points = lag.
+    
+    OUTPUT ---------------------------------------------------------------
+    spec_dens_vec --> numpy MxN-array
+    """
+    # number of series/subarray calculated by window and lag
+    n_of_series = int((len(array) - window)/lag + 1)
+    
+    # initialization of arrays
+    spec_dens_vec = np.zeros((n_of_series, window//2))
+    
+    # calculate normalized autocorrelation with pos lags for all series
+    for i in range(n_of_series):
+        ith_series = array[lag*i:window+lag*i]
+        
+        # Compute the power spectral density using the numpy module
+        sp_full = np.abs(np.fft.fft(ith_series))**2
+        sp_full = sp_full/len(ith_series)
+        spec_dens_vec[i] = sp_full[:len(sp_full)//2]
+    return spec_dens_vec
+
 # load data
 columns_names = ["Current (A)", "Timestamp (ms)", "id"]
 try:
@@ -153,7 +228,7 @@ except FileNotFoundError:
 
 # some parameters
 window = 100
-lag = 20
+lag = 100
 n_moments = 10
 
 # processing data
@@ -161,6 +236,21 @@ data = pd.Series.to_numpy(df["Current (A)"])
 data = standardization(data)
 data_der = differentiation(data)
 
-# creating vector of features
+# n moments of data series
 data_moments = get_n_moms_of_moving_array(data, lag, window, n_moments)
+# n moments of data differentiated series
 data_der_moments = get_n_moms_of_moving_array(data_der, lag, window, n_moments)
+# Autocorrelation of data series
+data_a_cor = norm_auto_corr_pos_lags(data, lag, window)
+# Autocorrelation of data differentiated series
+data_der_a_cor = norm_auto_corr_pos_lags(data_der, lag, window)
+# Power spectral density of data series
+data_psd = spectral_density(data, lag, window)
+# Power spectral density of data differentiated series
+data_der_psd = spectral_density(data_der, lag, window)
+
+# creating vector of features
+features = np.concatenate((data_moments, data_der_moments, data_a_cor,
+                           data_der_a_cor, data_psd, data_der_psd), axis=1)
+# standardizing features
+stand_features = StandardScaler().fit_transform(features)
