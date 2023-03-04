@@ -1,0 +1,9 @@
+# .coveragerc to control test coverage 
+[run]
+branch = True
+
+[report]
+show_missing = True
+
+# [html]
+# directory = coverage_html_report]
